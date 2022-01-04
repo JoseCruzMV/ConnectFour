@@ -2,7 +2,11 @@ package connectfour
 
 const val defaultRows = 6
 const val defaultColumns = 7
+const val defaultCellValue = " "
 const val endGameKeyWord = "end"
+const val successfulPlayersTurn = -1
+const val noSpaceInColumn = -2
+const val noSpaceInBoard = -3
 fun main() {
     var boardDimensions= ""
     val range = 5..9
@@ -57,21 +61,32 @@ fun main() {
     //Output message
     println("$firstPlayer VS $secondPlayer\n$boardDimensions board")
 
+    //Matrix with the data of the game
     val gameMatrix = MutableList(rows) {
-        MutableList(columns) {" "}
+        MutableList(columns) { defaultCellValue }
     }
     //Printing game's board
     printGameBoard(gameBoard = gameMatrix)
 
-    fun playerMove (column: Int, pattern: String) {
+    fun playerMove (column: Int, pattern: String): Int {
+        var result = 0
         for (i in gameMatrix.size - 1 downTo 0) {
-            if (gameMatrix[i][column] ==  " ") {
+            if (gameMatrix[i][column] ==  defaultCellValue) {
                 gameMatrix[i][column] = pattern
+                result =  successfulPlayersTurn
                 break
-            } else if (i == 0 ) {
+            } else if (i == 0) { // if there is no more space in selected column
+                var anySpace = false
+                //it will check if the board is completely full
+                for (row in gameMatrix) {
+                    // if there is a space in any column it will be true
+                    anySpace = row.contains(defaultCellValue)
+                }
+                result = if (anySpace) noSpaceInColumn else noSpaceInBoard
                 break
             }
         }
+        return result
     }
 
     //playing game with turns
@@ -84,13 +99,29 @@ fun main() {
         if (input == endGameKeyWord) {
             keepPlaying = false
             println("Game over!")
+        } else if (!input.all { Character.isDigit(it) }) { //if inputs is not a number
+            println("Incorrect column number")
+        } else if (input.toInt() !in 1..columns) { // checks if input is out of range
+            println("The column number is out of range (1 - $columns)")
         } else {
-            playerMove(
+            val playersMove = playerMove(
                 column = input.toInt() - 1,
                 pattern = if(actualTurn == firstPlayer) "o" else "*"
             )
-            printGameBoard(gameBoard = gameMatrix)
-            actualTurn = if (actualTurn == firstPlayer) secondPlayer else firstPlayer
+            when (playersMove) {
+                successfulPlayersTurn -> {
+                    printGameBoard(gameBoard = gameMatrix)
+                    actualTurn = if (actualTurn == firstPlayer) secondPlayer else firstPlayer
+                }
+                noSpaceInColumn -> {
+                    println("Column $input is full")
+//                    printGameBoard(gameBoard = gameMatrix)
+                }
+                noSpaceInBoard -> {
+                    println("Column $input is full")
+//                    printGameBoard(gameBoard = gameMatrix)
+                }
+            }
         }
     }
 }
