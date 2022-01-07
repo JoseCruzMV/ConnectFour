@@ -7,6 +7,7 @@ const val endGameKeyWord = "end"
 const val successfulPlayersTurn = -1
 const val noSpaceInColumn = -2
 const val noSpaceInBoard = -3
+const val playerWins = -4
 fun main() {
     var boardDimensions= ""
     val range = 5..9
@@ -73,16 +74,24 @@ fun main() {
         for (i in gameMatrix.size - 1 downTo 0) {
             if (gameMatrix[i][column] ==  defaultCellValue) {
                 gameMatrix[i][column] = pattern
-                result =  successfulPlayersTurn
-                break
-            } else if (i == 0) { // if there is no more space in selected column
-                var anySpace = false
+
+                var boardIsFull = false
                 //it will check if the board is completely full
                 for (row in gameMatrix) {
                     // if there is a space in any column it will be true
-                    anySpace = row.contains(defaultCellValue)
+                    if (row.contains(defaultCellValue)) break else boardIsFull = true
                 }
-                result = if (anySpace) noSpaceInColumn else noSpaceInBoard
+                //After saving the play, it will check if actual player wins
+                result =
+                    if (checkWinConditions(board = gameMatrix,pattern = pattern))
+                        playerWins //actual player already wins
+                    else if (boardIsFull)
+                        noSpaceInBoard // if there is no more space
+                    else
+                        successfulPlayersTurn //just a normal play
+                break
+            } else if (i == 0) { // if there is no more space in selected column
+                result = noSpaceInColumn
                 break
             }
         }
@@ -97,8 +106,7 @@ fun main() {
         val input = readLine()!!
 
         if (input == endGameKeyWord) {
-            keepPlaying = false
-            println("Game over!")
+            keepPlaying = false //ends the game
         } else if (!input.all { Character.isDigit(it) }) { //if inputs is not a number
             println("Incorrect column number")
         } else if (input.toInt() !in 1..columns) { // checks if input is out of range
@@ -115,18 +123,69 @@ fun main() {
                 }
                 noSpaceInColumn -> {
                     println("Column $input is full")
-//                    printGameBoard(gameBoard = gameMatrix)
                 }
                 noSpaceInBoard -> {
-                    println("Column $input is full")
-//                    printGameBoard(gameBoard = gameMatrix)
+                    printGameBoard(gameBoard = gameMatrix)
+                    println("It is a draw")
+                    keepPlaying = false
+                }
+                playerWins -> {
+                    printGameBoard(gameBoard = gameMatrix)
+                    println("Player $actualTurn won")
+                    keepPlaying = false
                 }
             }
         }
     }
+    println("Game over!")
 }
 
+//it will check for three different conditions: Horizontal, Vertical and Diagonally
+fun checkWinConditions(board: MutableList<MutableList<String>>, pattern: String): Boolean{
+    //win condition: if it finds four characters of the same pattern
+    val winCondition = if (pattern == "o")
+        Regex(".*?${pattern.repeat(4)}.*?")
+    else
+        Regex(".*?\\*\\*\\*\\*.*?")
 
+    //Looking for it horizontally
+    for (row in board) {
+        if (row.joinToString("").matches(winCondition)) return true else continue
+    }
+
+    //Looking for it vertically
+    for (i in 0 until board[0].size) { //number of columns
+        val auxM = mutableListOf<String>()
+        for (j in board.indices) { //number of rows
+            auxM.add(board[j][i])
+        }
+        if (auxM.joinToString("").matches(winCondition)) return true else continue
+    }
+
+    //Looking for it diagonally
+    //left to right
+    val aux = board.size + board[0].size - 2
+    for (i in 0..aux) {
+        val auxM = mutableListOf<String>()
+        for (j in 0..i) {
+            val k = i - j
+            if (k < board.size && j < board[0].size) auxM.add(board[k][j])
+        }
+        if (auxM.joinToString("").matches(winCondition)) return true else continue
+    }
+    //right to left
+    for (i in 0..aux) {
+        val auxM = mutableListOf<String>()
+        var k = i
+        for (j in board[0].size - 1 downTo 0){
+            if (k < board.size && j < board[0].size && k >= 0 ) auxM.add(board[k][j])
+            k--
+        }
+        if (auxM.joinToString("").matches(winCondition)) return true else continue
+    }
+
+    return false
+}
 
 //Get the auxBoard variable where auxBoard[0] = rows and auxBoard[1] = columns
 fun printGameBoard(gameBoard: MutableList<MutableList<String>>) {
